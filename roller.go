@@ -123,9 +123,15 @@ func (r *roller) traverseStruct(iface interface{}) {
 					r.push(typeName, v.Interface())
 				case "govalidator.Bool":
 					r.push(typeName, v.Interface())
+				case "time.Time":
+					r.push(typeName, v.Interface())
 				default:
-					r.typeName = ift.Name()
-					r.traverseStruct(v.Interface())
+					if _, ok := isValuer(v); ok {
+						r.push(typeName, v.Interface())
+					} else {
+						r.typeName = ift.Name()
+						r.traverseStruct(v.Interface())
+					}
 				}
 			}
 		case reflect.Map:

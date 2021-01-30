@@ -1,6 +1,7 @@
 package govalidator
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"strings"
@@ -54,4 +55,20 @@ func isEmpty(x interface{}) bool {
 		return rv.Len() == 0
 	}
 	return reflect.DeepEqual(x, reflect.Zero(rt).Interface())
+}
+
+// isValuer check the filed implement driver.Valuer or not
+func isValuer(field reflect.Value) (driver.Valuer, bool) {
+	var fieldRaw interface{}
+	fieldRaw = field.Interface()
+	if scanner, ok := fieldRaw.(driver.Valuer); ok {
+		return scanner, ok
+	}
+	if field.CanAddr() {
+		fieldRaw = field.Addr().Interface()
+	}
+	if scanner, ok := fieldRaw.(driver.Valuer); ok {
+		return scanner, ok
+	}
+	return nil, false
 }

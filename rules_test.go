@@ -2,11 +2,14 @@ package govalidator
 
 import (
 	"bytes"
+	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 )
 
 func Test_AddCustomRule(t *testing.T) {
@@ -2189,5 +2192,38 @@ func Test_NotIn_string_valid(t *testing.T) {
 	validationErr := vd.ValidateJSON()
 	if len(validationErr) != 0 {
 		t.Error("not_in validation was triggered when valid!")
+	}
+}
+
+type CustomValuer struct {
+	value string
+}
+
+func (v CustomValuer) Value() (driver.Value, error) {
+	return v.value, nil
+}
+
+type structWithValuerAndTime struct {
+	Name    string        `json:"name"`
+	Number  int64         `json:"number"`
+	Time    time.Time     `json:"time"`
+	NullInt sql.NullInt64 `json:"nullInt"`
+	Value   CustomValuer  `json:"value"`
+}
+
+func TestRoller_StartWithValuerAndTimeField(t *testing.T) {
+	r := roller{}
+	s := structWithValuerAndTime{
+		Name:    "John Doe",
+		Number:  1,
+		Time:    time.Now(),
+		NullInt: sql.NullInt64{Valid: true, Int64: 1},
+		Value:   CustomValuer{value: "test"},
+	}
+	r.setTagIdentifier("json")
+	r.setTagSeparator("|")
+	r.start(&s)
+	if len(r.getFlatMap()) != 5 {
+		t.Error("failed to push valuer and time type")
 	}
 }
